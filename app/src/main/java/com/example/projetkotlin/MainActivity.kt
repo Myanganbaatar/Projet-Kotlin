@@ -61,7 +61,7 @@ class MainActivity : ComponentActivity() {
 
 val mockTasks = listOf(
     Task(1, "Acheter du café", " pendant la pause"),
-    Task(2, "Préparer la présentation", "Pour la soutenance", TaskStatus.DONE),
+    Task(2, "Préparer la présentation", "Pour la soutenanc"),
     Task(3, "Sport", "Ne pas oublier !")
 )
 
