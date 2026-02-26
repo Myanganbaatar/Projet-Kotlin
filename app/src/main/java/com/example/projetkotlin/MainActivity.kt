@@ -94,7 +94,7 @@ class MainActivity : ComponentActivity() {
 val mockTasks = listOf(
     Task(1, "Acheter du café", "Indispensable pour coder"),
     Task(2, "Préparer la présentation", "Pour le 13 mars", TaskStatus.DONE),
-    Task(3, "Sport", "Ne pas oublier !")
+    Task(3, "Sport", "Ne pas oublier !", TaskStatus.LATE)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -169,7 +169,12 @@ fun TaskItem(
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .clickable { onTaskClicked() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = if (task.status == TaskStatus.LATE) {
+            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+        } else {
+            CardDefaults.cardColors()
+        }
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
