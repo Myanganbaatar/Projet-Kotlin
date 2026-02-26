@@ -3,6 +3,7 @@ package com.example.projetkotlin
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -26,11 +28,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.projetkotlin.ui.theme.ProjetKotlinTheme
 
 class MainActivity : ComponentActivity() {
@@ -44,13 +49,32 @@ class MainActivity : ComponentActivity() {
 
                 NavHost(navController = navController, startDestination = "taskList") {
                     composable("taskList") {
-                        TaskListScreen(navController = navController, tasks = tasks)
+                        TaskListScreen(navController = navController, tasks = tasks) { updatedTask ->
+                            val index = tasks.indexOfFirst { it.id == updatedTask.id }
+                            if (index != -1) {
+                                tasks[index] = updatedTask
+                            }
+                        }
                     }
                     composable("addTask") {
                         AddTaskScreen(navController = navController) {
                             val newId = (tasks.maxOfOrNull { it.id } ?: 0) + 1
                             tasks.add(it.copy(id = newId))
                             navController.popBackStack()
+                        }
+                    }
+                    composable(
+                        "editTask/{taskId}",
+                        arguments = listOf(navArgument("taskId") { type = NavType.IntType })
+                    ) { backStackEntry ->
+                        val taskId = backStackEntry.arguments?.getInt("taskId")
+                        val task = tasks.find { it.id == taskId }
+                        if (task != null) {
+                            EditTaskScreen(navController = navController, task = task) {
+                                val index = tasks.indexOf(task)
+                                tasks[index] = it
+                                navController.popBackStack()
+                            }
                         }
                     }
                 }
@@ -60,14 +84,14 @@ class MainActivity : ComponentActivity() {
 }
 
 val mockTasks = listOf(
-    Task(1, "Acheter du café", " pendant la pause"),
-    Task(2, "Préparer la présentation", "Pour la soutenance"),
+    Task(1, "Acheter du café", "Indispensable pour coder"),
+    Task(2, "Préparer la présentation", "Pour le 13 mars", TaskStatus.DONE),
     Task(3, "Sport", "Ne pas oublier !")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TaskListScreen(navController: NavController, tasks: List<Task>) {
+fun TaskListScreen(navController: NavController, tasks: List<Task>, onTaskUpdated: (Task) -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("My Todo List") })
@@ -80,28 +104,43 @@ fun TaskListScreen(navController: NavController, tasks: List<Task>) {
     ) { innerPadding ->
         LazyColumn(modifier = Modifier.padding(innerPadding).padding(8.dp)) {
             items(tasks) { task ->
-                TaskItem(task = task)
+                TaskItem(task = task, onTaskClicked = {
+                    navController.navigate("editTask/${task.id}")
+                }, onTaskCompleted = { isChecked ->
+                    val newStatus = if (isChecked) TaskStatus.DONE else TaskStatus.TODO
+                    onTaskUpdated(task.copy(status = newStatus))
+                })
             }
         }
     }
 }
 
 @Composable
-fun TaskItem(task: Task) {
+fun TaskItem(
+    task: Task,
+    onTaskClicked: () -> Unit,
+    onTaskCompleted: (Boolean) -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 4.dp)
+            .clickable { onTaskClicked() },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = task.title, fontWeight = FontWeight.Bold)
+            Checkbox(
+                checked = task.status == TaskStatus.DONE,
+                onCheckedChange = { onTaskCompleted(it) }
+            )
+            Column(modifier = Modifier.weight(1f).padding(start = 16.dp)) {
+                val textDecoration = if (task.status == TaskStatus.DONE) TextDecoration.LineThrough else null
+                Text(text = task.title, fontWeight = FontWeight.Bold, textDecoration = textDecoration)
                 if (task.description.isNotBlank()) {
-                    Text(text = task.description)
+                    Text(text = task.description, textDecoration = textDecoration)
                 }
             }
             Text(text = task.status.name, style = MaterialTheme.typography.bodySmall)
