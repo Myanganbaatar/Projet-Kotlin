@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -56,17 +57,21 @@ class MainActivity : ComponentActivity() {
             ProjetKotlinTheme {
                 val navController = rememberNavController()
                 val tasks = remember { mutableStateListOf<Task>() }
-                // Initialisation unique pour éviter les doublons au recompose
                 if (tasks.isEmpty()) tasks.addAll(mockTasks)
 
                 NavHost(navController = navController, startDestination = "taskList") {
                     composable("taskList") {
-                        TaskListScreen(navController = navController, tasks = tasks) { updatedTask ->
-                            val index = tasks.indexOfFirst { it.id == updatedTask.id }
-                            if (index != -1) {
-                                tasks[index] = updatedTask
+                        TaskListScreen(
+                            navController = navController,
+                            tasks = tasks,
+                            onTaskUpdated = { updatedTask ->
+                                val index = tasks.indexOfFirst { it.id == updatedTask.id }
+                                if (index != -1) tasks[index] = updatedTask
+                            },
+                            onClearCompleted = {
+                                tasks.removeAll { it.status == TaskStatus.DONE }
                             }
-                        }
+                        )
                     }
                     composable("addTask") {
                         AddTaskScreen(navController = navController) {
@@ -84,9 +89,7 @@ class MainActivity : ComponentActivity() {
                         if (task != null) {
                             EditTaskScreen(navController = navController, task = task) {
                                 val index = tasks.indexOfFirst { it.id == task.id }
-                                if (index != -1) {
-                                    tasks[index] = it
-                                }
+                                if (index != -1) tasks[index] = it
                                 navController.popBackStack()
                             }
                         }
@@ -105,7 +108,12 @@ val mockTasks = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TaskListScreen(navController: NavController, tasks: List<Task>, onTaskUpdated: (Task) -> Unit) {
+fun TaskListScreen(
+    navController: NavController,
+    tasks: List<Task>,
+    onTaskUpdated: (Task) -> Unit,
+    onClearCompleted: () -> Unit
+) {
     var showMenu by remember { mutableStateOf(false) }
     var filter by remember { mutableStateOf<TaskStatus?>(null) }
 
@@ -114,6 +122,9 @@ fun TaskListScreen(navController: NavController, tasks: List<Task>, onTaskUpdate
             TopAppBar(
                 title = { Text("My Todo List: ${filter?.name ?: "All"}") },
                 actions = {
+                    IconButton(onClick = onClearCompleted) {
+                        Icon(Icons.Default.DeleteSweep, contentDescription = "Purge DONE")
+                    }
                     Box {
                         IconButton(onClick = { showMenu = !showMenu }) {
                             Icon(Icons.Default.FilterList, contentDescription = "Filter Tasks")
