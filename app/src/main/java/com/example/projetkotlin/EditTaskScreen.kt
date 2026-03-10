@@ -27,6 +27,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -153,8 +154,68 @@ fun EditTaskScreen(navController: NavController, task: Task, onUpdateTask: (Task
                 }
             }
 
-            // ... (Reste des sélecteurs inchangé) ...
-            
+            // Periodicity Selector
+            ExposedDropdownMenuBox(
+                expanded = periodicityExpanded,
+                onExpandedChange = { periodicityExpanded = !periodicityExpanded },
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            ) {
+                OutlinedTextField(
+                    value = periodicity.name,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Periodicity") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = periodicityExpanded) },
+                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = periodicityExpanded,
+                    onDismissRequest = { periodicityExpanded = false }
+                ) {
+                    Periodicity.entries.forEach { p ->
+                        DropdownMenuItem(
+                            text = { Text(p.name) },
+                            onClick = {
+                                periodicity = p
+                                periodicityExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            // Priority Selector
+            ExposedDropdownMenuBox(
+                expanded = priorityExpanded,
+                onExpandedChange = { priorityExpanded = !priorityExpanded },
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            ) {
+                OutlinedTextField(
+                    value = priority.name,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Priority") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = priorityExpanded) },
+                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = priorityExpanded,
+                    onDismissRequest = { priorityExpanded = false }
+                ) {
+                    Priority.entries.forEach { pr ->
+                        DropdownMenuItem(
+                            text = { Text(pr.name) },
+                            onClick = {
+                                priority = pr
+                                priorityExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
 
             // Photo Modification
@@ -170,7 +231,7 @@ fun EditTaskScreen(navController: NavController, task: Task, onUpdateTask: (Task
                         model = imageUri,
                         contentDescription = "Selected Image",
                         modifier = Modifier.size(64.dp),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        contentScale = ContentScale.Crop
                     )
                 }
             }
