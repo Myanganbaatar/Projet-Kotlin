@@ -47,7 +47,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -58,6 +60,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import coil.compose.AsyncImage
 import com.example.projetkotlin.ui.theme.ProjetKotlinTheme
 
 class MainActivity : ComponentActivity() {
@@ -76,7 +79,7 @@ class MainActivity : ComponentActivity() {
                         TaskListScreen(
                             navController = navController,
                             tasks = tasks,
-                            points = totalPoints, // On passe les points ici
+                            points = totalPoints,
                             onTaskUpdated = { updatedTask ->
                                 val index = tasks.indexOfFirst { it.id == updatedTask.id }
                                 if (index != -1) {
@@ -133,17 +136,14 @@ val mockTasks = listOf(
 fun TaskListScreen(
     navController: NavController,
     tasks: List<Task>,
-    points: Int, // Nouveau paramètre
+    points: Int,
     onTaskUpdated: (Task) -> Unit,
     onClearCompleted: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var filter by remember { mutableStateOf<TaskStatus?>(null) }
     
-    // Animation du score
     val animatedPoints by animateIntAsState(targetValue = points, label = "pointsAnimation")
-    
-    // Détermination du rang
     val rank = when {
         points >= 100 -> "Expert 🏆"
         points >= 50 -> "Intermédiaire ⭐"
@@ -275,6 +275,20 @@ fun TaskItem(
                 onCheckedChange = { onTaskCompleted(it) },
                 modifier = Modifier.padding(start = 8.dp)
             )
+
+            // Miniature de la photo (Version 6)
+            if (task.imageUri != null) {
+                AsyncImage(
+                    model = task.imageUri,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .padding(start = 8.dp)
+                        .clip(MaterialTheme.shapes.small),
+                    contentScale = ContentScale.Crop
+                )
+            }
+
             Column(modifier = Modifier.weight(1f).padding(start = 8.dp, top = 16.dp, bottom = 16.dp)) {
                 val textDecoration = if (task.status == TaskStatus.DONE) TextDecoration.LineThrough else null
                 val textColor = if (task.status == TaskStatus.DONE) Color.Gray else Color.Unspecified
@@ -289,7 +303,8 @@ fun TaskItem(
                     Text(
                         text = task.description,
                         textDecoration = textDecoration,
-                        color = textColor.copy(alpha = 0.8f)
+                        color = textColor.copy(alpha = 0.8f),
+                        maxLines = 1
                     )
                 }
                 if (task.periodicity != Periodicity.NONE) {
