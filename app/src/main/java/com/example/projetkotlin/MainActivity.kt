@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -65,7 +67,6 @@ class MainActivity : ComponentActivity() {
             ProjetKotlinTheme {
                 val navController = rememberNavController()
                 val tasks = remember { mutableStateListOf<Task>() }
-                // Étape 1 : État pour les points
                 var totalPoints by remember { mutableIntStateOf(0) }
                 
                 if (tasks.isEmpty()) tasks.addAll(mockTasks)
@@ -75,10 +76,10 @@ class MainActivity : ComponentActivity() {
                         TaskListScreen(
                             navController = navController,
                             tasks = tasks,
+                            points = totalPoints, // On passe les points ici
                             onTaskUpdated = { updatedTask ->
                                 val index = tasks.indexOfFirst { it.id == updatedTask.id }
                                 if (index != -1) {
-                                    // Logique de calcul des points
                                     if (tasks[index].status != TaskStatus.DONE && updatedTask.status == TaskStatus.DONE) {
                                         totalPoints += when(updatedTask.priority) {
                                             Priority.HIGH -> 30
@@ -132,16 +133,36 @@ val mockTasks = listOf(
 fun TaskListScreen(
     navController: NavController,
     tasks: List<Task>,
+    points: Int, // Nouveau paramètre
     onTaskUpdated: (Task) -> Unit,
     onClearCompleted: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var filter by remember { mutableStateOf<TaskStatus?>(null) }
+    
+    // Animation du score
+    val animatedPoints by animateIntAsState(targetValue = points, label = "pointsAnimation")
+    
+    // Détermination du rang
+    val rank = when {
+        points >= 100 -> "Expert 🏆"
+        points >= 50 -> "Intermédiaire ⭐"
+        else -> "Débutant 🌱"
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("My Todo List") },
+                title = { 
+                    Column {
+                        Text("My Todo List", fontSize = 18.sp)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFBC02D), modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("$animatedPoints pts - $rank", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                },
                 actions = {
                     IconButton(onClick = onClearCompleted) {
                         Icon(Icons.Default.DeleteSweep, contentDescription = "Purge DONE")
