@@ -33,7 +33,10 @@ fun AddTaskScreen(navController: NavController, onAddTask: (Task) -> Unit) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var periodicity by remember { mutableStateOf(Periodicity.NONE) }
+    var priority by remember { mutableStateOf(Priority.MEDIUM) }
+    
     var showPeriodicityMenu by remember { mutableStateOf(false) }
+    var showPriorityMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -65,6 +68,7 @@ fun AddTaskScreen(navController: NavController, onAddTask: (Task) -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             )
 
+            // Periodicity Selector
             Box(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
                 OutlinedTextField(
                     value = periodicity.name,
@@ -94,10 +98,46 @@ fun AddTaskScreen(navController: NavController, onAddTask: (Task) -> Unit) {
                 }
             }
 
+            // Priority Selector
+            Box(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                OutlinedTextField(
+                    value = priority.name,
+                    onValueChange = { },
+                    readOnly = true,
+                    label = { Text("Priority") },
+                    trailingIcon = {
+                        IconButton(onClick = { showPriorityMenu = true }) {
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Priority")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().clickable { showPriorityMenu = true }
+                )
+                DropdownMenu(
+                    expanded = showPriorityMenu,
+                    onDismissRequest = { showPriorityMenu = false }
+                ) {
+                    Priority.entries.forEach { p ->
+                        DropdownMenuItem(
+                            text = { Text(p.name) },
+                            onClick = {
+                                priority = p
+                                showPriorityMenu = false
+                            }
+                        )
+                    }
+                }
+            }
+
             Button(
                 onClick = {
                     if (title.isNotBlank()) {
-                        onAddTask(Task(id = 0, title = title, description = description, periodicity = periodicity))
+                        onAddTask(Task(
+                            id = 0, 
+                            title = title, 
+                            description = description, 
+                            periodicity = periodicity,
+                            priority = priority
+                        ))
                     }
                 },
                 modifier = Modifier

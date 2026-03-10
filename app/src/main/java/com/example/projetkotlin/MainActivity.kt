@@ -5,14 +5,17 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -104,9 +107,9 @@ class MainActivity : ComponentActivity() {
 }
 
 val mockTasks = listOf(
-    Task(1, "Acheter du café", "Indispensable pour coder", TaskStatus.TODO, Periodicity.DAILY),
-    Task(2, "Préparer la présentation", "Pour le 13 mars", TaskStatus.DONE, Periodicity.NONE),
-    Task(3, "Sport", "Ne pas oublier !", TaskStatus.LATE, Periodicity.WEEKLY)
+    Task(1, "Acheter du café", "Indispensable pour coder", TaskStatus.TODO, Periodicity.DAILY, Priority.HIGH),
+    Task(2, "Préparer la présentation", "Pour le 13 mars", TaskStatus.DONE, Periodicity.NONE, Priority.MEDIUM),
+    Task(3, "Sport", "Ne pas oublier !", TaskStatus.LATE, Periodicity.WEEKLY, Priority.LOW)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -163,7 +166,9 @@ fun TaskListScreen(
             }
         }
     ) { innerPadding ->
-        val filteredTasks = if (filter == null) tasks else tasks.filter { it.status == filter }
+        // Tri automatique par priorité (High -> Medium -> Low)
+        val filteredTasks = (if (filter == null) tasks else tasks.filter { it.status == filter })
+            .sortedByDescending { it.priority }
 
         LazyColumn(
             modifier = Modifier
@@ -200,6 +205,12 @@ fun TaskItem(
         label = "cardBackground"
     )
 
+    val priorityColor = when (task.priority) {
+        Priority.HIGH -> Color.Red
+        Priority.MEDIUM -> Color(0xFFFFA500) // Orange
+        Priority.LOW -> Color.Blue
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -211,14 +222,26 @@ fun TaskItem(
         colors = CardDefaults.cardColors(containerColor = backgroundColor)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(end = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Barre de priorité sur le côté gauche
+            Box(
+                modifier = Modifier
+                    .width(6.dp)
+                    .padding(vertical = 8.dp)
+                    .background(priorityColor, MaterialTheme.shapes.small)
+                    .align(Alignment.CenterVertically)
+                    .fillMaxHeight()
+                    .size(width = 6.dp, height = 60.dp) // Hauteur min pour la barre
+            )
+
             Checkbox(
                 checked = task.status == TaskStatus.DONE,
-                onCheckedChange = { onTaskCompleted(it) }
+                onCheckedChange = { onTaskCompleted(it) },
+                modifier = Modifier.padding(start = 8.dp)
             )
-            Column(modifier = Modifier.weight(1f).padding(start = 16.dp)) {
+            Column(modifier = Modifier.weight(1f).padding(start = 8.dp, top = 16.dp, bottom = 16.dp)) {
                 val textDecoration = if (task.status == TaskStatus.DONE) TextDecoration.LineThrough else null
                 val textColor = if (task.status == TaskStatus.DONE) Color.Gray else Color.Unspecified
                 
@@ -240,10 +263,10 @@ fun TaskItem(
                         Icon(
                             Icons.Default.Repeat,
                             contentDescription = null,
-                            modifier = Modifier.size(14.dp),
+                            modifier = Modifier.size(12.dp),
                             tint = Color.Gray
                         )
-                        Spacer(modifier = Modifier.padding(start = 4.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = task.periodicity.name.lowercase(),
                             style = MaterialTheme.typography.labelSmall,
@@ -252,11 +275,19 @@ fun TaskItem(
                     }
                 }
             }
-            Text(
-                text = task.status.name,
-                style = MaterialTheme.typography.labelSmall,
-                color = if (task.status == TaskStatus.LATE) MaterialTheme.colorScheme.error else Color.Gray
-            )
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = task.status.name,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (task.status == TaskStatus.LATE) MaterialTheme.colorScheme.error else Color.Gray
+                )
+                Text(
+                    text = task.priority.name,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = priorityColor,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }
