@@ -6,7 +6,8 @@ data class Task(
     val description: String = "",
     val status: TaskStatus = TaskStatus.TODO,
     val periodicity: Periodicity = Periodicity.NONE,
-    val priority: Priority = Priority.MEDIUM
+    val priority: Priority = Priority.MEDIUM,
+    val imageUri: String? = null
 )
 
 enum class TaskStatus {
