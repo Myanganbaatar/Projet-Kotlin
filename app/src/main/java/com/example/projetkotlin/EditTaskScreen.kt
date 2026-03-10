@@ -1,10 +1,21 @@
 package com.example.projetkotlin
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -21,9 +32,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,10 +47,19 @@ fun EditTaskScreen(navController: NavController, task: Task, onUpdateTask: (Task
     var status by remember { mutableStateOf(task.status) }
     var periodicity by remember { mutableStateOf(task.periodicity) }
     var priority by remember { mutableStateOf(task.priority) }
+    var imageUri by remember { mutableStateOf<Uri?>(task.imageUri?.let { Uri.parse(it) }) }
 
     var statusExpanded by remember { mutableStateOf(false) }
     var periodicityExpanded by remember { mutableStateOf(false) }
     var priorityExpanded by remember { mutableStateOf(false) }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            imageUri = uri
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -54,6 +77,7 @@ fun EditTaskScreen(navController: NavController, task: Task, onUpdateTask: (Task
             modifier = Modifier
                 .padding(innerPadding)
                 .padding(16.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             OutlinedTextField(
                 value = title,
@@ -68,7 +92,7 @@ fun EditTaskScreen(navController: NavController, task: Task, onUpdateTask: (Task
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
             )
 
-            // Status Selector (Ajouté pour permettre de passer en LATE ou corriger)
+            // Status Selector
             ExposedDropdownMenuBox(
                 expanded = statusExpanded,
                 onExpandedChange = { statusExpanded = !statusExpanded },
@@ -99,7 +123,7 @@ fun EditTaskScreen(navController: NavController, task: Task, onUpdateTask: (Task
                 }
             }
 
-            // Periodicity Selector (Version 3)
+            // Periodicity Selector
             ExposedDropdownMenuBox(
                 expanded = periodicityExpanded,
                 onExpandedChange = { periodicityExpanded = !periodicityExpanded },
@@ -130,7 +154,7 @@ fun EditTaskScreen(navController: NavController, task: Task, onUpdateTask: (Task
                 }
             }
 
-            // Priority Selector (Version 4)
+            // Priority Selector
             ExposedDropdownMenuBox(
                 expanded = priorityExpanded,
                 onExpandedChange = { priorityExpanded = !priorityExpanded },
@@ -161,6 +185,26 @@ fun EditTaskScreen(navController: NavController, task: Task, onUpdateTask: (Task
                 }
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Photo Modification
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Button(onClick = { launcher.launch("image/*") }) {
+                    Icon(Icons.Default.AddPhotoAlternate, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(if (imageUri == null) "Add Photo" else "Change Photo")
+                }
+                if (imageUri != null) {
+                    Spacer(modifier = Modifier.width(16.dp))
+                    AsyncImage(
+                        model = imageUri,
+                        contentDescription = "Selected Image",
+                        modifier = Modifier.size(64.dp),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
+
             Button(
                 onClick = {
                     if (title.isNotBlank()) {
@@ -169,11 +213,12 @@ fun EditTaskScreen(navController: NavController, task: Task, onUpdateTask: (Task
                             description = description,
                             status = status,
                             periodicity = periodicity,
-                            priority = priority
+                            priority = priority,
+                            imageUri = imageUri?.toString()
                         ))
                     }
                 },
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+                modifier = Modifier.fillMaxWidth().padding(top = 24.dp)
             ) {
                 Text("Update Task")
             }
