@@ -21,10 +21,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -126,9 +130,9 @@ class MainActivity : ComponentActivity() {
 }
 
 val mockTasks = listOf(
-    Task(1, "Acheter du café", "Indispensable pour coder", TaskStatus.TODO, Periodicity.DAILY, Priority.HIGH),
-    Task(2, "Préparer la présentation", "Pour le 13 mars", TaskStatus.DONE, Periodicity.NONE, Priority.MEDIUM),
-    Task(3, "Sport", "Ne pas oublier !", TaskStatus.LATE, Periodicity.WEEKLY, Priority.LOW)
+    Task(1, "Acheter du café", "Indispensable pour coder", TaskStatus.TODO, Periodicity.DAILY, Priority.HIGH, TaskCategory.WORK),
+    Task(2, "Préparer la présentation", "Pour le 13 mars", TaskStatus.DONE, Periodicity.NONE, Priority.MEDIUM, TaskCategory.WORK),
+    Task(3, "Sport", "Ne pas oublier !", TaskStatus.LATE, Periodicity.WEEKLY, Priority.LOW, TaskCategory.PERSONAL)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -246,6 +250,13 @@ fun TaskItem(
         Priority.LOW -> Color.Blue
     }
 
+    val categoryIcon = when (task.category) {
+        TaskCategory.WORK -> Icons.Default.Work
+        TaskCategory.PERSONAL -> Icons.Default.Home
+        TaskCategory.SHOPPING -> Icons.Default.ShoppingBag
+        TaskCategory.OTHER -> Icons.Default.Category
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -276,7 +287,6 @@ fun TaskItem(
                 modifier = Modifier.padding(start = 8.dp)
             )
 
-            // Miniature de la photo (Version 6)
             if (task.imageUri != null) {
                 AsyncImage(
                     model = task.imageUri,
@@ -293,22 +303,29 @@ fun TaskItem(
                 val textDecoration = if (task.status == TaskStatus.DONE) TextDecoration.LineThrough else null
                 val textColor = if (task.status == TaskStatus.DONE) Color.Gray else Color.Unspecified
 
-                Text(
-                    text = task.title,
-                    fontWeight = FontWeight.Bold,
-                    textDecoration = textDecoration,
-                    color = textColor
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(categoryIcon, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.Gray)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = task.title,
+                        fontWeight = FontWeight.Bold,
+                        textDecoration = textDecoration,
+                        color = textColor
+                    )
+                }
+                
                 if (task.description.isNotBlank()) {
                     Text(
                         text = task.description,
                         textDecoration = textDecoration,
                         color = textColor.copy(alpha = 0.8f),
-                        maxLines = 1
+                        maxLines = 1,
+                        fontSize = 12.sp
                     )
                 }
-                if (task.periodicity != Periodicity.NONE) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (task.periodicity != Periodicity.NONE) {
                         Icon(
                             Icons.Default.Repeat,
                             contentDescription = null,
@@ -321,7 +338,13 @@ fun TaskItem(
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.Gray
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
                     }
+                    Text(
+                        text = "#${task.category.name.lowercase()}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
                 }
             }
             Column(horizontalAlignment = Alignment.End) {
