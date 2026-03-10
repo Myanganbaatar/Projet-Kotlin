@@ -38,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -63,6 +65,9 @@ class MainActivity : ComponentActivity() {
             ProjetKotlinTheme {
                 val navController = rememberNavController()
                 val tasks = remember { mutableStateListOf<Task>() }
+                // Étape 1 : État pour les points
+                var totalPoints by remember { mutableIntStateOf(0) }
+                
                 if (tasks.isEmpty()) tasks.addAll(mockTasks)
 
                 NavHost(navController = navController, startDestination = "taskList") {
@@ -72,7 +77,17 @@ class MainActivity : ComponentActivity() {
                             tasks = tasks,
                             onTaskUpdated = { updatedTask ->
                                 val index = tasks.indexOfFirst { it.id == updatedTask.id }
-                                if (index != -1) tasks[index] = updatedTask
+                                if (index != -1) {
+                                    // Logique de calcul des points
+                                    if (tasks[index].status != TaskStatus.DONE && updatedTask.status == TaskStatus.DONE) {
+                                        totalPoints += when(updatedTask.priority) {
+                                            Priority.HIGH -> 30
+                                            Priority.MEDIUM -> 20
+                                            Priority.LOW -> 10
+                                        }
+                                    }
+                                    tasks[index] = updatedTask
+                                }
                             },
                             onClearCompleted = {
                                 tasks.removeAll { it.status == TaskStatus.DONE }
@@ -126,7 +141,7 @@ fun TaskListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("My Todo List: ${filter?.name ?: "All"}") },
+                title = { Text("My Todo List") },
                 actions = {
                     IconButton(onClick = onClearCompleted) {
                         Icon(Icons.Default.DeleteSweep, contentDescription = "Purge DONE")
@@ -166,7 +181,6 @@ fun TaskListScreen(
             }
         }
     ) { innerPadding ->
-        // Tri automatique par priorité (High -> Medium -> Low)
         val filteredTasks = (if (filter == null) tasks else tasks.filter { it.status == filter })
             .sortedByDescending { it.priority }
 
@@ -207,7 +221,7 @@ fun TaskItem(
 
     val priorityColor = when (task.priority) {
         Priority.HIGH -> Color.Red
-        Priority.MEDIUM -> Color(0xFFFFA500) // Orange
+        Priority.MEDIUM -> Color(0xFFFFA500)
         Priority.LOW -> Color.Blue
     }
 
@@ -225,7 +239,6 @@ fun TaskItem(
             modifier = Modifier.padding(end = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Barre de priorité sur le côté gauche
             Box(
                 modifier = Modifier
                     .width(6.dp)
@@ -233,7 +246,7 @@ fun TaskItem(
                     .background(priorityColor, MaterialTheme.shapes.small)
                     .align(Alignment.CenterVertically)
                     .fillMaxHeight()
-                    .size(width = 6.dp, height = 60.dp) // Hauteur min pour la barre
+                    .size(width = 6.dp, height = 60.dp)
             )
 
             Checkbox(
@@ -244,7 +257,7 @@ fun TaskItem(
             Column(modifier = Modifier.weight(1f).padding(start = 8.dp, top = 16.dp, bottom = 16.dp)) {
                 val textDecoration = if (task.status == TaskStatus.DONE) TextDecoration.LineThrough else null
                 val textColor = if (task.status == TaskStatus.DONE) Color.Gray else Color.Unspecified
-                
+
                 Text(
                     text = task.title,
                     fontWeight = FontWeight.Bold,
