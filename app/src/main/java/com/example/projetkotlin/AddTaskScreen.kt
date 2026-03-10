@@ -51,11 +51,13 @@ fun AddTaskScreen(navController: NavController, onAddTask: (Task) -> Unit) {
     var status by remember { mutableStateOf(TaskStatus.TODO) }
     var periodicity by remember { mutableStateOf(Periodicity.NONE) }
     var priority by remember { mutableStateOf(Priority.MEDIUM) }
+    var category by remember { mutableStateOf(TaskCategory.OTHER) }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     
     var statusExpanded by remember { mutableStateOf(false) }
     var periodicityExpanded by remember { mutableStateOf(false) }
     var priorityExpanded by remember { mutableStateOf(false) }
+    var categoryExpanded by remember { mutableStateOf(false) }
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -93,6 +95,37 @@ fun AddTaskScreen(navController: NavController, onAddTask: (Task) -> Unit) {
                 label = { Text("Description") },
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
             )
+
+            // Category Selector (Version 7 Free Style)
+            ExposedDropdownMenuBox(
+                expanded = categoryExpanded,
+                onExpandedChange = { categoryExpanded = !categoryExpanded },
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            ) {
+                OutlinedTextField(
+                    value = category.name,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Category") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = categoryExpanded,
+                    onDismissRequest = { categoryExpanded = false }
+                ) {
+                    TaskCategory.entries.forEach { cat ->
+                        DropdownMenuItem(
+                            text = { Text(cat.name) },
+                            onClick = {
+                                category = cat
+                                categoryExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
 
             // Status Selector
             ExposedDropdownMenuBox(
@@ -217,6 +250,7 @@ fun AddTaskScreen(navController: NavController, onAddTask: (Task) -> Unit) {
                             status = status,
                             periodicity = periodicity,
                             priority = priority,
+                            category = category,
                             imageUri = imageUri?.toString()
                         ))
                     }
