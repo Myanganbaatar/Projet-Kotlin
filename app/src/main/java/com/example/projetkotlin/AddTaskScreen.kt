@@ -1,11 +1,16 @@
 package com.example.projetkotlin
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,6 +32,8 @@ import androidx.navigation.NavController
 fun AddTaskScreen(navController: NavController, onAddTask: (Task) -> Unit) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    var periodicity by remember { mutableStateOf(Periodicity.NONE) }
+    var showPeriodicityMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -57,15 +64,45 @@ fun AddTaskScreen(navController: NavController, onAddTask: (Task) -> Unit) {
                 label = { Text("Description") },
                 modifier = Modifier.fillMaxWidth()
             )
+
+            Box(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                OutlinedTextField(
+                    value = periodicity.name,
+                    onValueChange = { },
+                    readOnly = true,
+                    label = { Text("Periodicity") },
+                    trailingIcon = {
+                        IconButton(onClick = { showPeriodicityMenu = true }) {
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Periodicity")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().clickable { showPeriodicityMenu = true }
+                )
+                DropdownMenu(
+                    expanded = showPeriodicityMenu,
+                    onDismissRequest = { showPeriodicityMenu = false }
+                ) {
+                    Periodicity.entries.forEach { period ->
+                        DropdownMenuItem(
+                            text = { Text(period.name) },
+                            onClick = {
+                                periodicity = period
+                                showPeriodicityMenu = false
+                            }
+                        )
+                    }
+                }
+            }
+
             Button(
                 onClick = {
                     if (title.isNotBlank()) {
-                        onAddTask(Task(id = 0, title = title, description = description))
+                        onAddTask(Task(id = 0, title = title, description = description, periodicity = periodicity))
                     }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp)
+                    .padding(top = 16.dp)
             ) {
                 Text("Add Task")
             }

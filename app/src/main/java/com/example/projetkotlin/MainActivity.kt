@@ -9,14 +9,17 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -74,9 +77,9 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable("addTask") {
-                        AddTaskScreen(navController = navController) {
+                        AddTaskScreen(navController = navController) { task ->
                             val newId = (tasks.maxOfOrNull { it.id } ?: 0) + 1
-                            tasks.add(it.copy(id = newId))
+                            tasks.add(task.copy(id = newId))
                             navController.popBackStack()
                         }
                     }
@@ -87,9 +90,9 @@ class MainActivity : ComponentActivity() {
                         val taskId = backStackEntry.arguments?.getInt("taskId")
                         val task = tasks.find { it.id == taskId }
                         if (task != null) {
-                            EditTaskScreen(navController = navController, task = task) {
+                            EditTaskScreen(navController = navController, task = task) { updatedTask ->
                                 val index = tasks.indexOfFirst { it.id == task.id }
-                                if (index != -1) tasks[index] = it
+                                if (index != -1) tasks[index] = updatedTask
                                 navController.popBackStack()
                             }
                         }
@@ -101,9 +104,9 @@ class MainActivity : ComponentActivity() {
 }
 
 val mockTasks = listOf(
-    Task(1, "Acheter du café", "Indispensable pour coder"),
-    Task(2, "Préparer la présentation", "Pour le 13 mars", TaskStatus.DONE),
-    Task(3, "Sport", "Ne pas oublier !", TaskStatus.LATE)
+    Task(1, "Acheter du café", "Indispensable pour coder", TaskStatus.TODO, Periodicity.DAILY),
+    Task(2, "Préparer la présentation", "Pour le 13 mars", TaskStatus.DONE, Periodicity.NONE),
+    Task(3, "Sport", "Ne pas oublier !", TaskStatus.LATE, Periodicity.WEEKLY)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -140,7 +143,7 @@ fun TaskListScreen(
                                     showMenu = false
                                 }
                             )
-                            TaskStatus.values().forEach { status ->
+                            TaskStatus.entries.forEach { status ->
                                 DropdownMenuItem(
                                     text = { Text(status.name) },
                                     onClick = {
@@ -231,6 +234,22 @@ fun TaskItem(
                         textDecoration = textDecoration,
                         color = textColor.copy(alpha = 0.8f)
                     )
+                }
+                if (task.periodicity != Periodicity.NONE) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Repeat,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.padding(start = 4.dp))
+                        Text(
+                            text = task.periodicity.name.lowercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.Gray
+                        )
+                    }
                 }
             }
             Text(
