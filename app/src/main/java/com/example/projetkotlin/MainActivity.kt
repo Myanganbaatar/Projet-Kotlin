@@ -3,6 +3,8 @@ package com.example.projetkotlin
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -53,7 +56,8 @@ class MainActivity : ComponentActivity() {
             ProjetKotlinTheme {
                 val navController = rememberNavController()
                 val tasks = remember { mutableStateListOf<Task>() }
-                tasks.addAll(mockTasks)
+                // Initialisation unique pour éviter les doublons au recompose
+                if (tasks.isEmpty()) tasks.addAll(mockTasks)
 
                 NavHost(navController = navController, startDestination = "taskList") {
                     composable("taskList") {
@@ -79,8 +83,10 @@ class MainActivity : ComponentActivity() {
                         val task = tasks.find { it.id == taskId }
                         if (task != null) {
                             EditTaskScreen(navController = navController, task = task) {
-                                val index = tasks.indexOf(task)
-                                tasks[index] = it
+                                val index = tasks.indexOfFirst { it.id == task.id }
+                                if (index != -1) {
+                                    tasks[index] = it
+                                }
                                 navController.popBackStack()
                             }
                         }
@@ -145,14 +151,20 @@ fun TaskListScreen(navController: NavController, tasks: List<Task>, onTaskUpdate
     ) { innerPadding ->
         val filteredTasks = if (filter == null) tasks else tasks.filter { it.status == filter }
 
-        LazyColumn(modifier = Modifier.padding(innerPadding).padding(8.dp)) {
-            items(filteredTasks) { task ->
-                TaskItem(task = task, onTaskClicked = {
-                    navController.navigate("editTask/${task.id}")
-                }, onTaskCompleted = { isChecked ->
-                    val newStatus = if (isChecked) TaskStatus.DONE else TaskStatus.TODO
-                    onTaskUpdated(task.copy(status = newStatus))
-                })
+        LazyColumn(
+            modifier = Modifier
+                .padding(innerPadding)
+                .padding(8.dp)
+        ) {
+            items(filteredTasks, key = { it.id }) { task ->
+                Box(modifier = Modifier.animateItem()) {
+                    TaskItem(task = task, onTaskClicked = {
+                        navController.navigate("editTask/${task.id}")
+                    }, onTaskCompleted = { isChecked ->
+                        val newStatus = if (isChecked) TaskStatus.DONE else TaskStatus.TODO
+                        onTaskUpdated(task.copy(status = newStatus))
+                    })
+                }
             }
         }
     }
@@ -164,17 +176,25 @@ fun TaskItem(
     onTaskClicked: () -> Unit,
     onTaskCompleted: (Boolean) -> Unit
 ) {
+    val backgroundColor by animateColorAsState(
+        targetValue = when (task.status) {
+            TaskStatus.LATE -> MaterialTheme.colorScheme.errorContainer
+            TaskStatus.DONE -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            else -> MaterialTheme.colorScheme.surface
+        },
+        animationSpec = spring(),
+        label = "cardBackground"
+    )
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .clickable { onTaskClicked() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = if (task.status == TaskStatus.LATE) {
-            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
-        } else {
-            CardDefaults.cardColors()
-        }
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (task.status == TaskStatus.DONE) 0.dp else 2.dp
+        ),
+        colors = CardDefaults.cardColors(containerColor = backgroundColor)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -186,12 +206,27 @@ fun TaskItem(
             )
             Column(modifier = Modifier.weight(1f).padding(start = 16.dp)) {
                 val textDecoration = if (task.status == TaskStatus.DONE) TextDecoration.LineThrough else null
-                Text(text = task.title, fontWeight = FontWeight.Bold, textDecoration = textDecoration)
+                val textColor = if (task.status == TaskStatus.DONE) Color.Gray else Color.Unspecified
+                
+                Text(
+                    text = task.title,
+                    fontWeight = FontWeight.Bold,
+                    textDecoration = textDecoration,
+                    color = textColor
+                )
                 if (task.description.isNotBlank()) {
-                    Text(text = task.description, textDecoration = textDecoration)
+                    Text(
+                        text = task.description,
+                        textDecoration = textDecoration,
+                        color = textColor.copy(alpha = 0.8f)
+                    )
                 }
             }
-            Text(text = task.status.name, style = MaterialTheme.typography.bodySmall)
+            Text(
+                text = task.status.name,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (task.status == TaskStatus.LATE) MaterialTheme.colorScheme.error else Color.Gray
+            )
         }
     }
 }
