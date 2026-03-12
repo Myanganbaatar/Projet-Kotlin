@@ -22,10 +22,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Work
@@ -39,6 +41,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -145,7 +148,10 @@ fun TaskListScreen(
     onClearCompleted: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    var showCategoryMenu by remember { mutableStateOf(false) }
     var filter by remember { mutableStateOf<TaskStatus?>(null) }
+    var categoryFilter by remember { mutableStateOf<TaskCategory?>(null) }
+    var searchQuery by remember { mutableStateOf("") }
     
     val animatedPoints by animateIntAsState(targetValue = points, label = "pointsAnimation")
     val rank = when {
@@ -171,16 +177,17 @@ fun TaskListScreen(
                     IconButton(onClick = onClearCompleted) {
                         Icon(Icons.Default.DeleteSweep, contentDescription = "Purge DONE")
                     }
+                    // Filter by Status
                     Box {
                         IconButton(onClick = { showMenu = !showMenu }) {
-                            Icon(Icons.Default.FilterList, contentDescription = "Filter Tasks")
+                            Icon(Icons.Default.FilterList, contentDescription = "Filter by Status")
                         }
                         DropdownMenu(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("All") },
+                                text = { Text("All Status") },
                                 onClick = {
                                     filter = null
                                     showMenu = false
@@ -197,6 +204,33 @@ fun TaskListScreen(
                             }
                         }
                     }
+                    // Filter by Category
+                    Box {
+                        IconButton(onClick = { showCategoryMenu = !showCategoryMenu }) {
+                            Icon(Icons.Default.Category, contentDescription = "Filter by Category")
+                        }
+                        DropdownMenu(
+                            expanded = showCategoryMenu,
+                            onDismissRequest = { showCategoryMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("All Categories") },
+                                onClick = {
+                                    categoryFilter = null
+                                    showCategoryMenu = false
+                                }
+                            )
+                            TaskCategory.entries.forEach { cat ->
+                                DropdownMenuItem(
+                                    text = { Text(cat.name) },
+                                    onClick = {
+                                        categoryFilter = cat
+                                        showCategoryMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
             )
         },
@@ -206,22 +240,48 @@ fun TaskListScreen(
             }
         }
     ) { innerPadding ->
-        val filteredTasks = (if (filter == null) tasks else tasks.filter { it.status == filter })
-            .sortedByDescending { it.priority }
+        val filteredTasks = tasks.filter { task ->
+            val matchesStatus = (filter == null || task.status == filter)
+            val matchesCategory = (categoryFilter == null || task.category == categoryFilter)
+            val matchesSearch = task.title.contains(searchQuery, ignoreCase = true) || 
+                               task.description.contains(searchQuery, ignoreCase = true)
+            matchesStatus && matchesCategory && matchesSearch
+        }.sortedByDescending { it.priority }
 
-        LazyColumn(
-            modifier = Modifier
-                .padding(innerPadding)
-                .padding(8.dp)
-        ) {
-            items(filteredTasks, key = { it.id }) { task ->
-                Box(modifier = Modifier.animateItem()) {
-                    TaskItem(task = task, onTaskClicked = {
-                        navController.navigate("editTask/${task.id}")
-                    }, onTaskCompleted = { isChecked ->
-                        val newStatus = if (isChecked) TaskStatus.DONE else TaskStatus.TODO
-                        onTaskUpdated(task.copy(status = newStatus))
-                    })
+        Column(modifier = Modifier.padding(innerPadding)) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                placeholder = { Text("Rechercher une tâche...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(Icons.Default.Clear, contentDescription = "Effacer")
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = MaterialTheme.shapes.medium
+            )
+
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 8.dp)
+            ) {
+                items(filteredTasks, key = { it.id }) { task ->
+                    Box(modifier = Modifier.animateItem()) {
+                        TaskItem(task = task, onTaskClicked = {
+                            navController.navigate("editTask/${task.id}")
+                        }, onTaskCompleted = { isChecked ->
+                            val newStatus = if (isChecked) TaskStatus.DONE else TaskStatus.TODO
+                            onTaskUpdated(task.copy(status = newStatus))
+                        })
+                    }
                 }
             }
         }
